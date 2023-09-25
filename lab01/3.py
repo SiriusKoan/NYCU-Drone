@@ -4,6 +4,10 @@ import numpy as np
 
 filename = sys.argv[1]
 rate = int(sys.argv[2])
+
+# filename: test.jpg 
+# rate: 3
+
 img = cv2.imread(filename)
 row, col, _ = img.shape
 
