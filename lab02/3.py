@@ -1,48 +1,45 @@
 import numpy as np
 import cv2 as cv
-img = cv.imread('otsu.jpg', cv.IMREAD_GRAYSCALE)
+
+img = cv.imread('otsu.jpg',cv.IMREAD_GRAYSCALE)
 row, col = img.shape
-
-max_between_var = {'intensity':0, 'variance':0.0}
+total_pixels = row*col
+# histogram
 hist = np.zeros(256)
-def var_between(Nb, Mb, No, Mo):
-    return Nb*No*((Mb - Mo)**2)
 
 for i in range(row):
     for j in range(col):
-        hist[img[i][j]] += 1;
-#initialize nb, no, mb, mo
-nb = hist[0]
-no = (row*col) - hist[0]
-mb = 0
-mo = 0
-for i in range(1, 256):
-    mo += hist[i]*i
-    mo = round(float(mo)/((row*col) - nb))
-max_between_var['intensity'] = 0
-max_between_var['variance'] = var_between(nb, mb, no, mo)
-#print(f'mb: {mb}, mo: {mo}, nb: {nb}, no: {no} i: {i} var: {max_between_var["variance"]}')
+        hist[img[i][j]] += 1
+# calculte best threshold
+best_threshold = 0
+max_variance = 0
 
-temp = 0
-for i in range(1, 256):
-    mb = (mb*nb + hist[i]*i)/(nb + hist[i])
-    mo = (mo*no - hist[i]*i)/(no - hist[i])
-    nb += hist[i]
-    no -= hist[i]
-    if mo <= 0 :
+for threshold in range(256):
+    # < threshold
+    pixels_below = np.sum(hist[:threshold])
+    # >= threshold
+    pixels_above = total_pixels - pixels_below
+
+    if (pixels_below == 0 or pixels_above == 0):
         continue
-    temp = var_between(nb, mb, no, mo)
-   # print(f'mb: {mb}, mo: {mo}, nb: {nb}, no: {no} i: {i} var: {temp}')
-    if (temp > max_between_var['variance']):
-        max_between_var['intensity'] = i
-        max_between_var['variance'] = temp
+
+    mean_below = np.sum(np.arange(threshold)*hist[:threshold])/float(pixels_below)
+    mean_above = np.sum(np.arange(threshold, 256)*hist[threshold:])/float(pixels_above)
+
+    between_variance = pixels_above*pixels_below*(mean_above - mean_below)**2
+    #print(f'intensity: {threshold}, pixels_below: {pixels_below}, pixels_above: {pixels_above}, mean_below: {mean_below}, mean_above: {mean_above}, between_variance: {between_variance}')
+    if (between_variance > max_variance):
+        max_variance = between_variance
+        best_threshold = threshold
+
 for i in range(row):
     for j in range(col):
-        if (img[i][j] > max_between_var['intensity']):
-            img[i][j] = 255
-        else:
+        if (img[i][j] < best_threshold):
             img[i][j] = 0
+        else:
+            img[i][j] = 255
+
+#_, new_img = cv.threshold(img, best_threshold, 255, cv.THRESH_BINARY)
+cv.imwrite('3.jpg', img)
 cv.imshow('3.jpg', img)
 cv.waitKey(0)
-#print(max_between_var)
-
