@@ -55,7 +55,7 @@ def check_lens():
         cv2.imshow('Calibration', frame)
 
         print(len(obj_points), len(img_points))
-        if len(img_points) > 100:
+        if len(img_points) > 20:
             print("Collection done")
             break
 
@@ -63,7 +63,9 @@ def check_lens():
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-    cap.release()
+        time.sleep(0.01)
+
+    # cap.release()
     cv2.destroyAllWindows()
 
     # 進行相機校準
@@ -81,13 +83,22 @@ def main():
     # Tello
     drone = Tello()
     drone.connect()
-    #time.sleep(10)
+    # drone.set_video_encoder_rate(1)
+    # print(drone.get_battery())
+    # time.sleep(10)
     drone.streamon()
     frame_read = drone.get_frame_read()
+    # vid = cv2.VideoCapture(drone.get_udp_video_address())
+    # success, frame = vid.read()
+    
+    fs = cv2.FileStorage("camera_params.xml", cv2.FILE_STORAGE_READ)
+    intri = fs.getNode("camera_matrix").mat()
+    distortion = fs.getNode("dist_coeff").mat()
     
 
     while True:
         frame = frame_read.frame
+        # success, frame = vid.read()
 
                 
         # Load the predefined dictionary
@@ -99,16 +110,32 @@ def main():
         # Detect the markers in the image
         markerCorners, markerIds, rejectedCandidates = cv2.aruco.detectMarkers(frame, dictionary, parameters=parameters)
 
+
         frame = cv2.aruco.drawDetectedMarkers(frame, markerCorners, markerIds)
-        
+        # print(intri, distortion)
+        if len(markerCorners) > 0:
+            rvec, tvec, _objPoints = cv2.aruco.estimatePoseSingleMarkers(markerCorners, 15, intri, distortion)
+            print(rvec, tvec)
+            frame = cv2.aruco.drawAxis(frame, intri, distortion, rvec, tvec, 10)
+            cv2.putText(frame,
+                        "x = "+str(round(tvec[0,0,0], 4))+", y = "+str(round(tvec[0,0,1], 4))+", z = "+str(round(tvec[0,0,2], 4)),
+                        (0,64),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        1,
+                        (0,255,0),
+                        2,
+                        cv2.LINE_AA
+            )
         cv2.imshow("drone", frame)
         key = cv2.waitKey(33)
+        time.sleep(0.01)
     
     #cv2.destroyAllWindows()
 
 
 
 if __name__ == '__main__':
+    #check_lens()
     main()
 
 
