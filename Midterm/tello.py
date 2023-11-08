@@ -3,13 +3,22 @@ import threading
 import time
 import numpy as np
 import cv2
+
 # import libh264decoder
+
 
 class Tello:
     """Wrapper class to interact with the Tello drone."""
 
-    def __init__(self, local_ip, local_port, imperial=False, command_timeout=.3, tello_ip='192.168.10.1',
-                 tello_port=8889):
+    def __init__(
+        self,
+        local_ip,
+        local_port,
+        imperial=False,
+        command_timeout=0.3,
+        tello_ip="192.168.10.1",
+        tello_port=8889,
+    ):
         """
         Binds to the local IP/port and puts the Tello into command mode.
 
@@ -26,12 +35,16 @@ class Tello:
         # self.decoder = libh264decoder.H264Decoder()
         self.command_timeout = command_timeout
         self.imperial = imperial
-        self.response = None  
+        self.response = None
         self.frame = None  # numpy array BGR -- current camera output frame
         self.is_freeze = False  # freeze current camera output
         self.last_frame = None
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # socket for sending cmd
-        self.socket_video = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # socket for receiving video stream
+        self.socket = socket.socket(
+            socket.AF_INET, socket.SOCK_DGRAM
+        )  # socket for sending cmd
+        self.socket_video = socket.socket(
+            socket.AF_INET, socket.SOCK_DGRAM
+        )  # socket for receiving video stream
         self.tello_address = (tello_ip, tello_port)
         self.local_video_port = 11111  # port for receiving video stream
         self.last_height = 0
@@ -44,10 +57,10 @@ class Tello:
         self.receive_thread.start()
 
         # to receive video -- send cmd: command, streamon
-        self.socket.sendto(b'command', self.tello_address)
-        print ('sent: command')
-        self.socket.sendto(b'streamon', self.tello_address)
-        print ('sent: streamon')
+        self.socket.sendto(b"command", self.tello_address)
+        print("sent: command")
+        self.socket.sendto(b"streamon", self.tello_address)
+        print("sent: streamon")
 
         # self.socket_video.bind((local_ip, self.local_video_port))
 
@@ -62,7 +75,7 @@ class Tello:
 
         self.socket.close()
         self.socket_video.close()
-    
+
     def read(self):
         """Return the last frame from camera."""
         if self.is_freeze:
@@ -85,9 +98,9 @@ class Tello:
         while True:
             try:
                 self.response, ip = self.socket.recvfrom(3000)
-                #print(self.response)
+                # print(self.response)
             except socket.error as exc:
-                print ("Caught exception socket.error : %s" % exc)
+                print("Caught exception socket.error : %s" % exc)
 
     def _receive_video_thread(self):
         """
@@ -101,8 +114,7 @@ class Tello:
         retval, self.frame = video_capture.read()
         while retval:
             retval, frame = video_capture.read()
-            self.frame = frame[..., ::-1] # From BGR to RGB
-
+            self.frame = frame[..., ::-1]  # From BGR to RGB
 
         # packet_data = ""
         # while True:
@@ -117,6 +129,7 @@ class Tello:
 
         #     except socket.error as exc:
         #         print ("Caught exception socket.error : %s" % exc)
+
     '''  
     def _h264_decode(self, packet_data):
         """
@@ -140,6 +153,7 @@ class Tello:
 
         return res_frame_list
     '''
+
     def send_command(self, command):
         """
         Send a command to the Tello and wait for a response.
@@ -149,33 +163,33 @@ class Tello:
 
         """
 
-        print (">> send cmd: {}".format(command))
+        print(">> send cmd: {}".format(command))
         self.abort_flag = False
         timer = threading.Timer(self.command_timeout, self.set_abort_flag)
 
-        self.socket.sendto(command.encode('utf-8'), self.tello_address)
+        self.socket.sendto(command.encode("utf-8"), self.tello_address)
 
         timer.start()
         while self.response is None:
             if self.abort_flag is True:
                 break
         timer.cancel()
-        
+
         if self.response is None:
-            response = 'none_response'
+            response = "none_response"
         else:
-            response = self.response.decode('utf-8')
+            response = self.response.decode("utf-8")
 
         self.response = None
 
         return response
-    
+
     def set_abort_flag(self):
         """
         Sets self.abort_flag to True.
 
         Used by the timer in Tello.send_command() to indicate to that a response
-        
+
         timeout has occurred.
 
         """
@@ -191,7 +205,7 @@ class Tello:
 
         """
 
-        return self.send_command('takeoff')
+        return self.send_command("takeoff")
 
     def set_speed(self, speed):
         """
@@ -218,7 +232,7 @@ class Tello:
         else:
             speed = int(round(speed * 27.7778))
 
-        return self.send_command('speed %s' % speed)
+        return self.send_command("speed %s" % speed)
 
     def rotate_cw(self, degrees):
         """
@@ -232,7 +246,7 @@ class Tello:
 
         """
 
-        return self.send_command('cw %s' % degrees)
+        return self.send_command("cw %s" % degrees)
 
     def rotate_ccw(self, degrees):
         """
@@ -245,7 +259,7 @@ class Tello:
             str: Response from Tello, 'OK' or 'FALSE'.
 
         """
-        return self.send_command('ccw %s' % degrees)
+        return self.send_command("ccw %s" % degrees)
 
     def flip(self, direction):
         """
@@ -259,7 +273,7 @@ class Tello:
 
         """
 
-        return self.send_command('flip %s' % direction)
+        return self.send_command("flip %s" % direction)
 
     def get_response(self):
         """
@@ -279,7 +293,7 @@ class Tello:
             int: Height(dm) of tello.
 
         """
-        height = self.send_command('height?')
+        height = self.send_command("height?")
         height = str(height)
         height = filter(str.isdigit, height)
         try:
@@ -297,8 +311,8 @@ class Tello:
             int: Percent battery life remaining.
 
         """
-        
-        battery = self.send_command('battery?')
+
+        battery = self.send_command("battery?")
 
         try:
             battery = int(battery)
@@ -315,7 +329,7 @@ class Tello:
 
         """
 
-        flight_time = self.send_command('time?')
+        flight_time = self.send_command("time?")
 
         try:
             flight_time = int(flight_time)
@@ -332,7 +346,7 @@ class Tello:
 
         """
 
-        speed = self.send_command('speed?')
+        speed = self.send_command("speed?")
 
         try:
             speed = float(speed)
@@ -354,7 +368,7 @@ class Tello:
 
         """
 
-        return self.send_command('land')
+        return self.send_command("land")
 
     def move(self, direction, distance):
         """Moves in a direction for a distance.
@@ -381,7 +395,7 @@ class Tello:
         else:
             distance = int(round(distance * 100))
 
-        return self.send_command('%s %s' % (direction, distance))
+        return self.send_command("%s %s" % (direction, distance))
 
     def move_backward(self, distance):
         """Moves backward for a distance.
@@ -396,7 +410,7 @@ class Tello:
 
         """
 
-        return self.move('back', distance)
+        return self.move("back", distance)
 
     def move_down(self, distance):
         """Moves down for a distance.
@@ -411,7 +425,7 @@ class Tello:
 
         """
 
-        return self.move('down', distance)
+        return self.move("down", distance)
 
     def move_forward(self, distance):
         """Moves forward for a distance.
@@ -425,7 +439,7 @@ class Tello:
             str: Response from Tello, 'OK' or 'FALSE'.
 
         """
-        return self.move('forward', distance)
+        return self.move("forward", distance)
 
     def move_left(self, distance):
         """Moves left for a distance.
@@ -439,7 +453,7 @@ class Tello:
             str: Response from Tello, 'OK' or 'FALSE'.
 
         """
-        return self.move('left', distance)
+        return self.move("left", distance)
 
     def move_right(self, distance):
         """Moves right for a distance.
@@ -450,7 +464,7 @@ class Tello:
             distance (int): Distance to move.
 
         """
-        return self.move('right', distance)
+        return self.move("right", distance)
 
     def move_up(self, distance):
         """Moves up for a distance.
@@ -465,43 +479,43 @@ class Tello:
 
         """
 
-        return self.move('up', distance)
+        return self.move("up", distance)
 
     def keyboard(self, key):
         print("key:", key)
         distance = 0.2
         degree = 30
-        if key == ord('1'):
+        if key == ord("1"):
             self.takeoff()
-        if key == ord('2'):
+        if key == ord("2"):
             self.land()
-        if key == ord('i'):
+        if key == ord("i"):
             self.move_forward(distance)
             print("forward!!!!")
-        if key == ord('k'):
+        if key == ord("k"):
             self.move_backward(distance)
             print("backward!!!!")
-        if key == ord('j'):
+        if key == ord("j"):
             self.move_left(distance)
             print("left!!!!")
-        if key == ord('l'):
+        if key == ord("l"):
             self.move_right(distance)
             print("right!!!!")
-        if key == ord('s'):
+        if key == ord("s"):
             self.move_down(distance)
             print("down!!!!")
-        if key == ord('w'):
+        if key == ord("w"):
             self.move_up(distance)
             print("up!!!!")
-        if key == ord('a'):
+        if key == ord("a"):
             self.rotate_cw(degree)
             print("rotate!!!!")
-        if key == ord('d'):
+        if key == ord("d"):
             self.rotate_ccw(degree)
             print("counter rotate!!!!")
-        if key == ord('5'):
+        if key == ord("5"):
             height = self.get_height()
             print(height)
-        if key == ord('6'):
+        if key == ord("6"):
             battery = self.get_battery()
-            print (battery)
+            print(battery)
