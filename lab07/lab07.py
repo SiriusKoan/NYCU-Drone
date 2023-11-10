@@ -92,7 +92,7 @@ def keyboard(self, key):
     degree = 10
     if key == ord('1'):
         self.takeoff()
-        self.send_rc_control(0, 400, 0, 0)
+        self.move("up", 88)
         #is_flying = True
     if key == ord('2'):
         self.land()
@@ -248,6 +248,7 @@ def main():
                 z = tvec[0, 0, 2]
                 if z > 100:
                     x_update = 0
+                    y_update = 0
                     if tvec[0, 0, 0] > 15:
                         x_update = 20
                     elif tvec[0, 0, 0] < -15:
@@ -281,23 +282,23 @@ def main():
             if progress == 1:
                 INTERVAL = 1
                 if [1] in markerIds <= 100:
-                    # up 120cm
+                    # up 100cm
                     SPEED = 50
-                    for _ in range(int(150 / SPEED)):
+                    for _ in range(int(100 / SPEED)):
                         print("Up")
                         drone.send_rc_control(0, 0, int(SPEED), 0)
                         time.sleep(1)
                     stop(drone)
-                    # forward 90cm
-                    SPEED = 45
-                    for _ in range(int(90 / SPEED)):
+                    # forward 120cm
+                    SPEED = 35
+                    for _ in range(int(105 / SPEED)):
                         print("Forward")
                         drone.send_rc_control(0, int(SPEED), 0, 0)
                         time.sleep(1)
                     stop(drone)
-                    # down 120cm
-                    SPEED = 60
-                    for _ in range(int(180 / SPEED)):
+                    # down 200cm
+                    SPEED = 50
+                    for _ in range(int(200 / SPEED)):
                         print("Down")
                         drone.send_rc_control(0, 0, int(-SPEED), 0)
                         time.sleep(1)
@@ -308,18 +309,68 @@ def main():
                 SPEED = 60
                 if [2] in markerIds and [1] not in markerIds:
                     # down 60cm
+                    SPEED = 60
                     for _ in range(int(60 / SPEED)):
                         print("Down")
                         drone.send_rc_control(0, 0, int(-SPEED / INTERVAL), 0)
                         time.sleep(INTERVAL)
                     stop(drone)
                     # forward 180cm
-                    for _ in range(int(180 / SPEED)):
+                    SPEED = 50
+                    for _ in range(int(200 / SPEED)):
                         print("Forward")
                         drone.send_rc_control(0, int(SPEED / INTERVAL), 0, 0)
                         time.sleep(INTERVAL)
                     stop(drone)
-                    drone.land()
+                    # up 180cm
+                    SPEED = 60
+                    for _ in range(int(180 / SPEED)):
+                        print("Up")
+                        drone.send_rc_control(0, 0, int(SPEED / INTERVAL), 0)
+                        time.sleep(INTERVAL)
+                    stop(drone)
+                    progress = 3
+
+            if progress == 3:
+                MAX_SPEED_THRESHOLD = 25
+                z_update = tvec[0, 0, 2] - 75
+                # print("org_z: " + str(z_update))
+                z_update = z_pid.update(z_update, sleep=0)
+                # print("pid_z: " + str(z_update))
+                if z_update > MAX_SPEED_THRESHOLD:
+                    z_update = MAX_SPEED_THRESHOLD
+                elif z_update < -MAX_SPEED_THRESHOLD:
+                    z_update = -MAX_SPEED_THRESHOLD
+
+                #drone.send_rc_control(0, int(z_update), 0, 0)
+
+                x_update = 0
+                if tvec[0, 0, 0] > 15:
+                    x_update = 10
+                elif tvec[0, 0, 0] < -15:
+                    x_update = -10
+
+                #drone.send_rc_control(x_update, 0, 0, 0)
+
+                R, _ = cv2.Rodrigues(rvec)
+                Z = np.array([0,0,1])
+                Z_prime = np.dot(R, Z)
+                V = np.array([Z_prime[0], 0, Z_prime[2]])
+                angle_rad = math.atan2(np.linalg.norm(np.cross(Z, V)), np.dot(Z, V))
+                angle_deg = math.degrees(angle_rad)
+
+                deg = 0
+                deg_mv = 0
+
+                if R[2, 0] > 0.1:
+                    deg = -10
+                    deg_mv = 5
+                elif R[2, 0] < -0.1:
+                    deg = 10
+                    deg_mv = 5
+
+                drone.send_rc_control(x_update, int(z_update), 0, deg)
+                    
 
         # control
         if key != -1:
