@@ -187,9 +187,9 @@ def main():
 
             MAX_SPEED_THRESHOLD = 25
             z_update = tvec[0, 0, 2] - 100
-            # print("org_z: " + str(z_update))
+            #print("org_z: " + str(z_update))
             z_update = z_pid.update(z_update, sleep=0)
-            # print("pid_z: " + str(z_update))
+            #print("pid_z: " + str(z_update))
             if z_update > MAX_SPEED_THRESHOLD:
                 z_update = MAX_SPEED_THRESHOLD
             elif z_update < -MAX_SPEED_THRESHOLD:
@@ -222,7 +222,7 @@ def main():
                 deg = 10
                 deg_mv = 5
 
-            # drone.send_rc_control(x_update, int(z_update), 0, deg)
+            #drone.send_rc_control(x_update, int(z_update), 0, deg)
 
             frame = cv2.aruco.drawAxis(frame, intri, distortion, rvec, tvec, 10)
             cv2.putText(frame,
@@ -257,22 +257,6 @@ def main():
                         y_update = -10
                     elif tvec[0,0,1] < -15:
                         y_update = 10
-                    # R, _ = cv2.Rodrigues(rvec)
-                    # Z = np.array([0,0,1])
-                    # Z_prime = np.dot(R, Z)
-                    # V = np.array([Z_prime[0], 0, Z_prime[2]])
-                    # angle_rad = math.atan2(np.linalg.norm(np.cross(Z, V)), np.dot(Z, V))
-                    # angle_deg = math.degrees(angle_rad)
-
-                    # deg = 0
-                    # deg_mv = 0
-
-                    # if R[2, 0] > 0.1:
-                    #     deg = -10
-                    #     deg_mv = 5
-                    # elif R[2, 0] < -0.1:
-                    #     deg = 10
-                    #     deg_mv = 5
                     drone.send_rc_control(x_update, 10, y_update, 0)
                     time.sleep(0.5)
                     stop(drone)
@@ -316,8 +300,8 @@ def main():
                         time.sleep(INTERVAL)
                     stop(drone)
                     # forward 180cm
-                    SPEED = 50
-                    for _ in range(int(200 / SPEED)):
+                    SPEED = 55
+                    for _ in range(int(165 / SPEED)):
                         print("Forward")
                         drone.send_rc_control(0, int(SPEED / INTERVAL), 0, 0)
                         time.sleep(INTERVAL)
@@ -331,12 +315,12 @@ def main():
                     stop(drone)
                     progress = 3
 
-            if progress == 3:
+            if [0] in markerIds and progress == 3:
                 MAX_SPEED_THRESHOLD = 25
                 z_update = tvec[0, 0, 2] - 75
-                # print("org_z: " + str(z_update))
+                print("org_z: " + str(z_update))
                 z_update = z_pid.update(z_update, sleep=0)
-                # print("pid_z: " + str(z_update))
+                print("pid_z: " + str(z_update))
                 if z_update > MAX_SPEED_THRESHOLD:
                     z_update = MAX_SPEED_THRESHOLD
                 elif z_update < -MAX_SPEED_THRESHOLD:
@@ -370,6 +354,73 @@ def main():
                     deg_mv = 5
 
                 drone.send_rc_control(x_update, int(z_update), 0, deg)
+
+                if [3] in markerIds and [0] not in markerIds:
+                    progress = 4
+
+            if progress == 4:
+                INTERVAL = 1
+                z = tvec[0, 0, 2]
+                while z > 20:
+                    x_update = 0
+                    y_update = 0
+                    if tvec[0, 0, 0] > 15:
+                        x_update = 20
+                    elif tvec[0, 0, 0] < -15:
+                        x_update = -20
+                    if tvec[0,0,1] > -5:
+                        y_update = -10
+                    elif tvec[0,0,1] < -15:
+                        y_update = 10
+                    drone.send_rc_control(x_update, 10, y_update, 0)
+                    time.sleep(0.5)
+                    stop(drone)
+                drone.rotate_clockwise(90)
+                stop(drone)
+                progress = 5
+            
+            if progress == 5:
+                INTERVAL = 1
+                z = tvec[0, 0, 2]
+                while z > 50:
+                    x_update = 0
+                    y_update = 0
+                    if tvec[0, 0, 0] > 15:
+                        x_update = 20
+                    elif tvec[0, 0, 0] < -15:
+                        x_update = -20
+                    if tvec[0,0,1] > -5:
+                        y_update = -10
+                    elif tvec[0,0,1] < -15:
+                        y_update = 10
+                    drone.send_rc_control(x_update, 10, y_update, 0)
+                    time.sleep(0.5)
+                    stop(drone)
+                    progress = 6
+
+            if progress == 6:
+                while [5] not in markerIds:
+                    drone.move("left", 10)
+                drone.move("left", 10)
+                stop(drone)
+                z = tvec[0, 0, 2]
+                while z < 150:
+                    x_update = 0
+                    y_update = 0
+                    if tvec[0, 0, 0] > 15:
+                        x_update = 20
+                    elif tvec[0, 0, 0] < -15:
+                        x_update = -20
+                    if tvec[0,0,1] > -5:
+                        y_update = -10
+                    elif tvec[0,0,1] < -15:
+                        y_update = 10
+                    drone.send_rc_control(x_update, 10, y_update, 0)
+                    time.sleep(0.5)
+                    stop(drone)
+                    drone.land()
+
+
                     
 
         # control
