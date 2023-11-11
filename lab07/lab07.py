@@ -354,7 +354,7 @@ def main():
                     deg_mv = 5
 
                 drone.send_rc_control(x_update, int(z_update), 0, deg)
-
+                time.sleep(0.01)
                 if [3] in markerIds and [0] not in markerIds:
                     progress = 4
 
