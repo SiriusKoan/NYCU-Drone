@@ -326,42 +326,27 @@ def main():
                 elif z_update < -MAX_SPEED_THRESHOLD:
                     z_update = -MAX_SPEED_THRESHOLD
 
-                #drone.send_rc_control(0, int(z_update), 0, 0)
-
                 x_update = 0
                 if tvec[0, 0, 0] > 15:
                     x_update = 10
                 elif tvec[0, 0, 0] < -15:
                     x_update = -10
 
-                #drone.send_rc_control(x_update, 0, 0, 0)
-
-                R, _ = cv2.Rodrigues(rvec)
-                Z = np.array([0,0,1])
-                Z_prime = np.dot(R, Z)
-                V = np.array([Z_prime[0], 0, Z_prime[2]])
-                angle_rad = math.atan2(np.linalg.norm(np.cross(Z, V)), np.dot(Z, V))
-                angle_deg = math.degrees(angle_rad)
-
                 deg = 0
-                deg_mv = 0
-
                 if R[2, 0] > 0.1:
                     deg = -10
-                    deg_mv = 5
                 elif R[2, 0] < -0.1:
                     deg = 10
-                    deg_mv = 5
 
                 drone.send_rc_control(x_update, int(z_update), 0, deg)
 
-                if [3] in markerIds and [0] not in markerIds:
-                    progress = 4
+            if [3] in markerIds and [0] not in markerIds:
+                progress = 4
 
             if progress == 4:
                 INTERVAL = 1
                 z = tvec[0, 0, 2]
-                while z > 20:
+                if z > 20:
                     x_update = 0
                     y_update = 0
                     if tvec[0, 0, 0] > 15:
@@ -375,14 +360,15 @@ def main():
                     drone.send_rc_control(x_update, 10, y_update, 0)
                     time.sleep(0.5)
                     stop(drone)
-                drone.rotate_clockwise(90)
-                stop(drone)
-                progress = 5
+                else:
+                    drone.rotate_clockwise(90)
+                    stop(drone)
+                    progress = 5
             
             if progress == 5:
                 INTERVAL = 1
                 z = tvec[0, 0, 2]
-                while z > 50:
+                if z > 50:
                     x_update = 0
                     y_update = 0
                     if tvec[0, 0, 0] > 15:
@@ -396,15 +382,17 @@ def main():
                     drone.send_rc_control(x_update, 10, y_update, 0)
                     time.sleep(0.5)
                     stop(drone)
+                else:
                     progress = 6
 
             if progress == 6:
-                while [5] not in markerIds:
+                if [5] not in markerIds:
                     drone.move("left", 10)
-                drone.move("left", 10)
-                stop(drone)
+                else:
+                    drone.move("left", 10)
+                    stop(drone)
                 z = tvec[0, 0, 2]
-                while z < 150:
+                if z < 150:
                     x_update = 0
                     y_update = 0
                     if tvec[0, 0, 0] > 15:
@@ -415,9 +403,10 @@ def main():
                         y_update = -10
                     elif tvec[0,0,1] < -15:
                         y_update = 10
-                    drone.send_rc_control(x_update, 10, y_update, 0)
+                    drone.send_rc_control(x_update, -10, y_update, 0)
                     time.sleep(0.5)
                     stop(drone)
+                else:
                     drone.land()
 
 
