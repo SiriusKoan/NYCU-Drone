@@ -218,7 +218,7 @@ def main():
                             y_update = -10
                         elif tvec[i,0,1] < -15:
                             y_update = 10
-                        drone.send_rc_control(x_update, 20, y_update, 0)
+                        drone.send_rc_control(x_update, 25, y_update, 0)
                         time.sleep(0.5)
                         stop(drone)
                     else:
