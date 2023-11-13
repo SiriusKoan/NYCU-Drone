@@ -160,7 +160,7 @@ def main():
     z_pid.initialize()
     y_pid.initialize()
     
-    progress = 3
+    progress = 0
 
     while True:
         # img
@@ -175,221 +175,237 @@ def main():
         # Detect the markers in the image
         markerCorners, markerIds, rejectedCandidates = cv2.aruco.detectMarkers(frame, dictionary, parameters=parameters)
 
-        try:
-            frame = cv2.aruco.drawDetectedMarkers(frame, markerCorners, markerIds)
-        except Exception as e:
-            print(e)
-            continue
         # print(intri, distortion)
         if len(markerCorners) > 0:
             global rvec, tvec
             rvec, tvec, _objPoints = cv2.aruco.estimatePoseSingleMarkers(markerCorners, 15, intri, distortion)
 
-            try:
-                frame = cv2.aruco.drawAxis(frame, intri, distortion, np.float32(rvec), np.float32(tvec), 10)
-            except Exception as e:
-                print(e)
-                continue
-            cv2.putText(frame,
-                        f"x: {round(tvec[0,0,0], 2)}, y: {round(tvec[0,0,1], 2)}, z: {round(tvec[0,0,2], 2)}",
-                        # "x: "+str(round(tvec[0,0,0], 2))+", y: "+str(round(tvec[0,0,1], 2))+", z: "+str(round(tvec[0,0,2], 4))+", deg: "+str(angle_deg)),
-                        (0,64),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        1,
-                        (0,255,0),
-                        2,
-                        cv2.LINE_AA
-            )
-            print(f"x: {round(tvec[0,0,0], 2)}, y: {round(tvec[0,0,1], 2)}, z: {round(tvec[0,0,2], 2)}")
+            for i in range(rvec.shape[0]):
+                
+                frame = cv2.aruco.drawDetectedMarkers(frame, markerCorners, markerIds)
+                frame = cv2.aruco.drawAxis(frame, intri, distortion, rvec[i,:,:], tvec[i,:,:], 10)
+                cv2.putText(frame,
+                            f"x: {round(tvec[0,0,0], 2)}, y: {round(tvec[0,0,1], 2)}, z: {round(tvec[0,0,2], 2)}",
+                            # "x: "+str(round(tvec[0,0,0], 2))+", y: "+str(round(tvec[0,0,1], 2))+", z: "+str(round(tvec[0,0,2], 4))+", deg: "+str(angle_deg)),
+                            (0,64),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            1,
+                            (0,255,0),
+                            2,
+                            cv2.LINE_AA
+                )
+                print(f"x: {round(tvec[0,0,0], 2)}, y: {round(tvec[0,0,1], 2)}, z: {round(tvec[0,0,2], 2)}")
 
         cv2.imshow("drone", frame)
         key = cv2.waitKey(33)
 
         # lab7
         if len(markerCorners) > 0:
-            print(f"ID: {markerIds}")
-            print(f"Progress: {progress}")
-            if [1] in markerIds and progress == 0:
-                z = tvec[0, 0, 2]
-                if z > 100:
-                    x_update = 0
-                    y_update = 0
-                    if tvec[0, 0, 0] > 15:
-                        x_update = 20
-                    elif tvec[0, 0, 0] < -15:
-                        x_update = -20
-                    if tvec[0,0,1] > -5:
-                        y_update = -10
-                    elif tvec[0,0,1] < -15:
-                        y_update = 10
-                    drone.send_rc_control(x_update, 20, y_update, 0)
-                    time.sleep(0.5)
-                    stop(drone)
-                else:
-                    drone.send_rc_control(0, 0, 0, 0)
-                    progress = 1
-            if progress == 1:
-                INTERVAL = 1
-                if [1] in markerIds <= 100:
-                    # up 100cm
-                    SPEED = 50
-                    # for _ in range(int(100 / SPEED)):
-                    #     print("Up")
-                    #     drone.send_rc_control(0, 0, int(SPEED), 0)
-                    #     time.sleep(1)
-                    drone.move("up", 100)
-                    stop(drone)
-                    # forward 130cm
-                    SPEED = 35
-                    # for _ in range(int(105 / SPEED)):
-                    #     print("Forward")
-                    #     drone.send_rc_control(0, int(SPEED), 0, 0)
-                    #     time.sleep(1)
-                    drone.move("forward", 130)
-                    stop(drone)
-                    # down 150cm
-                    SPEED = 50
-                    # for _ in range(int(200 / SPEED)):
-                    #     print("Down")
-                    #     drone.send_rc_control(0, 0, int(-SPEED), 0)
-                    #     time.sleep(1)
-                    drone.move("down", 150)
-                    stop(drone)
-                    progress = 2
-            if progress == 2:
-                INTERVAL = 1
-                SPEED = 60
-                if [2] in markerIds and [1] not in markerIds:
-                    # down 60cm
+            for i in range(rvec.shape[0]):
+                id = markerIds[i][0]
+                print(f"ID: {markerIds}")
+                print(f"Progress: {progress}")
+                if id == 1 and progress == 0:
+                    z = tvec[i, 0, 2]
+                    if z > 100:
+                        x_update = 0
+                        y_update = 0
+                        if tvec[i, 0, 0] > 15:
+                            x_update = 20
+                        elif tvec[i, 0, 0] < -15:
+                            x_update = -20
+                        if tvec[i,0,1] > -5:
+                            y_update = -10
+                        elif tvec[i,0,1] < -15:
+                            y_update = 10
+                        drone.send_rc_control(x_update, 20, y_update, 0)
+                        time.sleep(0.5)
+                        stop(drone)
+                    else:
+                        drone.send_rc_control(0, 0, 0, 0)
+                        progress = 1
+                if progress == 1:
+                    INTERVAL = 1
+                    if [1] in markerIds <= 100:
+                        # up 70cm
+                        SPEED = 50
+                        # for _ in range(int(100 / SPEED)):
+                        #     print("Up")
+                        #     drone.send_rc_control(0, 0, int(SPEED), 0)
+                        #     time.sleep(1)
+                        drone.move("up", 70)
+                        stop(drone)
+                        # forward 130cm
+                        SPEED = 35
+                        # for _ in range(int(105 / SPEED)):
+                        #     print("Forward")
+                        #     drone.send_rc_control(0, int(SPEED), 0, 0)
+                        #     time.sleep(1)
+                        drone.move("forward", 130)
+                        stop(drone)
+                        # down 120cm
+                        SPEED = 50
+                        # for _ in range(int(200 / SPEED)):
+                        #     print("Down")
+                        #     drone.send_rc_control(0, 0, int(-SPEED), 0)
+                        #     time.sleep(1)
+                        drone.move("down", 120)
+                        stop(drone)
+                        progress = 2
+                if progress == 2:
+                    INTERVAL = 1
                     SPEED = 60
-                    # for _ in range(int(60 / SPEED)):
-                    #     print("Down")
-                    #     drone.send_rc_control(0, 0, int(-SPEED / INTERVAL), 0)
-                    #     time.sleep(INTERVAL)
-                    drone.move("down", 60)
-                    stop(drone)
-                    # forward 150cm
-                    SPEED = 55
-                    # for _ in range(int(165 / SPEED)):
-                    #     print("Forward")
-                    #     drone.send_rc_control(0, int(SPEED / INTERVAL), 0, 0)
-                    #     time.sleep(INTERVAL)
-                    drone.move("forward", 150)
-                    stop(drone)
-                    # up 180cm
-                    SPEED = 60
-                    # for _ in range(int(180 / SPEED)):
-                    #     print("Up")
-                    #     drone.send_rc_control(0, 0, int(SPEED / INTERVAL), 0)
-                    #     time.sleep(INTERVAL)
-                    drone.move("up", 180)
-                    stop(drone)
-                    progress = 3
+                    if id == 2:
+                        # down 60cm
+                        SPEED = 60
+                        # for _ in range(int(60 / SPEED)):
+                        #     print("Down")
+                        #     drone.send_rc_control(0, 0, int(-SPEED / INTERVAL), 0)
+                        #     time.sleep(INTERVAL)
+                        drone.move("down", 60)
+                        stop(drone)
+                        # forward 200cm
+                        SPEED = 55
+                        # for _ in range(int(165 / SPEED)):
+                        #     print("Forward")
+                        #     drone.send_rc_control(0, int(SPEED / INTERVAL), 0, 0)
+                        #     time.sleep(INTERVAL)
+                        drone.move("forward", 200)
+                        stop(drone)
+                        # up 110cm
+                        SPEED = 60
+                        # for _ in range(int(180 / SPEED)):
+                        #     print("Up")
+                        #     drone.send_rc_control(0, 0, int(SPEED / INTERVAL), 0)
+                        #     time.sleep(INTERVAL)
+                        drone.move("up", 110)
+                        stop(drone)
+                        progress = 3
 
-            if [0] in markerIds and progress == 3:
-                MAX_SPEED_THRESHOLD = 25
-                z_update = tvec[0, 0, 2] - 75
-                print("org_z: " + str(z_update))
-                z_update = z_pid.update(z_update, sleep=0)
-                print("pid_z: " + str(z_update))
-                if z_update > MAX_SPEED_THRESHOLD:
-                    z_update = MAX_SPEED_THRESHOLD
-                elif z_update < -MAX_SPEED_THRESHOLD:
-                    z_update = -MAX_SPEED_THRESHOLD
+                if id == 0 and progress == 3:
+                    MAX_SPEED_THRESHOLD = 25
+                    z_update = tvec[i, 0, 2] - 75
+                    print("org_z: " + str(z_update))
+                    z_update = z_pid.update(z_update, sleep=0)
+                    print("pid_z: " + str(z_update))
+                    if z_update > MAX_SPEED_THRESHOLD:
+                        z_update = MAX_SPEED_THRESHOLD
+                    elif z_update < -MAX_SPEED_THRESHOLD:
+                        z_update = -MAX_SPEED_THRESHOLD
 
-                x_update = 0
-                y_update = 0
-                if tvec[0, 0, 0] > 15:
-                    x_update = 10
-                elif tvec[0, 0, 0] < -15:
-                    x_update = -10
-                if tvec[0,0,1] > -5:
-                     y_update = -10
-                elif tvec[0,0,1] < -15:
-                    y_update = 10
-
-                R, _ = cv2.Rodrigues(rvec)
-
-                deg = 0
-                if R[2, 0] > 0.1:
-                    deg = -25
-                elif R[2, 0] < -0.1:
-                    deg = 25
-
-                drone.send_rc_control(x_update, int(z_update), y_update, deg)
-                time.sleep(0.01)
-
-            if [3] in markerIds and [0] not in markerIds:
-                progress = 4
-
-            if progress == 4:
-                INTERVAL = 1
-                z = tvec[0, 0, 2]
-                if z > 100:
                     x_update = 0
                     y_update = 0
-                    if tvec[0, 0, 0] > 15:
-                        x_update = 20
-                    elif tvec[0, 0, 0] < -15:
-                        x_update = -20
-                    if tvec[0,0,1] > -5:
+                    if tvec[i, 0, 0] > 15:
+                        x_update = 10
+                    elif tvec[i, 0, 0] < -15:
+                        x_update = -10
+                    if tvec[i,0,1] > -5:
                         y_update = -10
-                    elif tvec[0,0,1] < -15:
+                    elif tvec[i,0,1] < -15:
                         y_update = 10
-                    drone.send_rc_control(x_update, 20, y_update, 0)
-                    time.sleep(0.5)
-                    stop(drone)
-                else:
-                    drone.rotate_clockwise(90)
-                    stop(drone)
-                    progress = 5
-            
-            if progress == 5:
-                INTERVAL = 1
-                z = tvec[0, 0, 2]
-                if z > 70:
-                    x_update = 0
-                    y_update = 0
-                    if tvec[0, 0, 0] > 15:
-                        x_update = 20
-                    elif tvec[0, 0, 0] < -15:
-                        x_update = -20
-                    if tvec[0,0,1] > -5:
-                        y_update = -10
-                    elif tvec[0,0,1] < -15:
-                        y_update = 10
-                    drone.send_rc_control(x_update, 20, y_update, 0)
-                    time.sleep(0.5)
-                    stop(drone)
-                else:
-                    progress = 6
 
-            if progress == 6:
-                if [5] not in markerIds:
-                    drone.move("left", 10)
-                else:
-                    drone.move("left", 10)
-                    stop(drone)
-                    progress = 7
+                    R, _ = cv2.Rodrigues(rvec[i])
 
-            if progress == 7:
-                z = tvec[0, 0, 2]
-                if z < 150:
-                    x_update = 0
-                    y_update = 0
-                    if tvec[0, 0, 0] > 15:
-                        x_update = 20
-                    elif tvec[0, 0, 0] < -15:
-                        x_update = -20
-                    if tvec[0,0,1] > -5:
-                        y_update = -10
-                    elif tvec[0,0,1] < -15:
-                        y_update = 10
-                    drone.send_rc_control(x_update, -10, y_update, 0)
-                    time.sleep(0.5)
-                    stop(drone)
-                else:
-                    drone.land()
+                    deg = 0
+                    if R[2, 0] > 0.1:
+                        deg = -25
+                    elif R[2, 0] < -0.1:
+                        deg = 25
+
+                    drone.send_rc_control(x_update, int(z_update), y_update, deg)
+                    time.sleep(0.01)
+
+                if [3] in markerIds and [0] not in markerIds:
+                    progress = 4
+
+                if id == 3 and progress == 4:
+                    INTERVAL = 1
+                    z = tvec[i, 0, 2]
+                    if z > 100:
+                        x_update = 0
+                        y_update = 0
+                        if tvec[i, 0, 0] > 15:
+                            x_update = 20
+                        elif tvec[i, 0, 0] < -15:
+                            x_update = -20
+                        if tvec[i,0,1] > -5:
+                            y_update = -10
+                        elif tvec[i,0,1] < -15:
+                            y_update = 10
+
+                        R, _ = cv2.Rodrigues(rvec[i])
+
+                        deg = 0
+                        if R[2, 0] > 0.1:
+                            deg = -25
+                        elif R[2, 0] < -0.1:
+                            deg = 25
+
+                        drone.send_rc_control(x_update, 15, y_update, deg)
+                        time.sleep(0.5)
+                        stop(drone)
+                    else:
+                        drone.rotate_clockwise(90)
+                        stop(drone)
+                        progress = 5
+                
+                if id == 4 and progress == 5:
+                    INTERVAL = 1
+                    z = tvec[i, 0, 2]
+                    if z > 70:
+                        x_update = 0
+                        y_update = 0
+                        if tvec[i, 0, 0] > 15:
+                            x_update = 20
+                        elif tvec[i, 0, 0] < -15:
+                            x_update = -20
+                        if tvec[i,0,1] > -5:
+                            y_update = -10
+                        elif tvec[i,0,1] < -15:
+                            y_update = 10
+
+                        R, _ = cv2.Rodrigues(rvec[i])
+
+                        deg = 0
+                        if R[2, 0] > 0.1:
+                            deg = -25
+                        elif R[2, 0] < -0.1:
+                            deg = 25
+
+                        drone.send_rc_control(x_update, 15, y_update, deg)
+                        time.sleep(0.5)
+                        stop(drone)
+                    else:
+                        progress = 6
+                        drone.move("left", 250)
+
+                if id == 5 and progress == 6:
+                    z = tvec[i, 0, 2]
+                    if z < 150:
+                        x_update = 0
+                        y_update = 0
+                        if tvec[i, 0, 0] > 15:
+                            x_update = 20
+                        elif tvec[i, 0, 0] < -15:
+                            x_update = -20
+                        if tvec[i,0,1] > -5:
+                            y_update = -10
+                        elif tvec[i,0,1] < -15:
+                            y_update = 10
+
+                        R, _ = cv2.Rodrigues(rvec[i])
+
+                        deg = 0
+                        if R[2, 0] > 0.1:
+                            deg = -25
+                        elif R[2, 0] < -0.1:
+                            deg = 25
+
+                        drone.send_rc_control(x_update, -15, y_update, deg)
+                        time.sleep(0.5)
+                        stop(drone)
+                    else:
+                        drone.land()
 
 
                     
