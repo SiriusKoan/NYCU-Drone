@@ -160,7 +160,7 @@ def main():
     z_pid.initialize()
     y_pid.initialize()
     
-    progress = 0
+    progress = 3
 
     while True:
         # img
@@ -185,48 +185,15 @@ def main():
             global rvec, tvec
             rvec, tvec, _objPoints = cv2.aruco.estimatePoseSingleMarkers(markerCorners, 15, intri, distortion)
 
-            MAX_SPEED_THRESHOLD = 25
-            z_update = tvec[0, 0, 2] - 100
-            #print("org_z: " + str(z_update))
-            z_update = z_pid.update(z_update, sleep=0)
-            #print("pid_z: " + str(z_update))
-            if z_update > MAX_SPEED_THRESHOLD:
-                z_update = MAX_SPEED_THRESHOLD
-            elif z_update < -MAX_SPEED_THRESHOLD:
-                z_update = -MAX_SPEED_THRESHOLD
-
             # drone.send_rc_control(0, int(z_update), 0, 0)
 
-            x_update = 0
-            if tvec[0, 0, 0] > 15:
-                x_update = 10
-            elif tvec[0, 0, 0] < -15:
-                x_update = -10
-
             #drone.send_rc_control(x_update, 0, 0, 0)
-
-            R, _ = cv2.Rodrigues(rvec)
-            Z = np.array([0,0,1])
-            Z_prime = np.dot(R, Z)
-            V = np.array([Z_prime[0], 0, Z_prime[2]])
-            angle_rad = math.atan2(np.linalg.norm(np.cross(Z, V)), np.dot(Z, V))
-            angle_deg = math.degrees(angle_rad)
-
-            deg = 0
-            deg_mv = 0
-
-            if R[2, 0] > 0.1:
-                deg = -10
-                deg_mv = 5
-            elif R[2, 0] < -0.1:
-                deg = 10
-                deg_mv = 5
 
             #drone.send_rc_control(x_update, int(z_update), 0, deg)
 
             frame = cv2.aruco.drawAxis(frame, intri, distortion, rvec, tvec, 10)
             cv2.putText(frame,
-                        f"x: {round(tvec[0,0,0], 2)}, y: {round(tvec[0,0,1], 2)}, z: {round(tvec[0,0,2], 2)}, deg: {R[2, 0]}",
+                        f"x: {round(tvec[0,0,0], 2)}, y: {round(tvec[0,0,1], 2)}, z: {round(tvec[0,0,2], 2)}",
                         # "x: "+str(round(tvec[0,0,0], 2))+", y: "+str(round(tvec[0,0,1], 2))+", z: "+str(round(tvec[0,0,2], 4))+", deg: "+str(angle_deg)),
                         (0,64),
                         cv2.FONT_HERSHEY_SIMPLEX,
@@ -235,7 +202,7 @@ def main():
                         2,
                         cv2.LINE_AA
             )
-            print(f"x: {round(tvec[0,0,0], 2)}, y: {round(tvec[0,0,1], 2)}, z: {round(tvec[0,0,2], 2)}, deg: {round(R[2, 0], 2)}")
+            print(f"x: {round(tvec[0,0,0], 2)}, y: {round(tvec[0,0,1], 2)}, z: {round(tvec[0,0,2], 2)}")
 
         cv2.imshow("drone", frame)
         key = cv2.waitKey(33)
@@ -257,7 +224,7 @@ def main():
                         y_update = -10
                     elif tvec[0,0,1] < -15:
                         y_update = 10
-                    drone.send_rc_control(x_update, 10, y_update, 0)
+                    drone.send_rc_control(x_update, 20, y_update, 0)
                     time.sleep(0.5)
                     stop(drone)
                 else:
@@ -327,18 +294,23 @@ def main():
                     z_update = -MAX_SPEED_THRESHOLD
 
                 x_update = 0
+                y_update = 0
                 if tvec[0, 0, 0] > 15:
                     x_update = 10
                 elif tvec[0, 0, 0] < -15:
                     x_update = -10
+                if tvec[0,0,1] > -5:
+                     y_update = -10
+                elif tvec[0,0,1] < -15:
+                    y_update = 10
 
                 deg = 0
                 if R[2, 0] > 0.1:
-                    deg = -10
+                    deg = -25
                 elif R[2, 0] < -0.1:
-                    deg = 10
+                    deg = 25
 
-                drone.send_rc_control(x_update, int(z_update), 0, deg)
+                drone.send_rc_control(x_update, int(z_update), y_update, deg)
                 time.sleep(0.01)
 
             if [3] in markerIds and [0] not in markerIds:
@@ -347,7 +319,7 @@ def main():
             if progress == 4:
                 INTERVAL = 1
                 z = tvec[0, 0, 2]
-                if z > 20:
+                if z > 100:
                     x_update = 0
                     y_update = 0
                     if tvec[0, 0, 0] > 15:
@@ -358,7 +330,7 @@ def main():
                         y_update = -10
                     elif tvec[0,0,1] < -15:
                         y_update = 10
-                    drone.send_rc_control(x_update, 10, y_update, 0)
+                    drone.send_rc_control(x_update, 20, y_update, 0)
                     time.sleep(0.5)
                     stop(drone)
                 else:
@@ -369,7 +341,7 @@ def main():
             if progress == 5:
                 INTERVAL = 1
                 z = tvec[0, 0, 2]
-                if z > 50:
+                if z > 70:
                     x_update = 0
                     y_update = 0
                     if tvec[0, 0, 0] > 15:
@@ -380,7 +352,7 @@ def main():
                         y_update = -10
                     elif tvec[0,0,1] < -15:
                         y_update = 10
-                    drone.send_rc_control(x_update, 10, y_update, 0)
+                    drone.send_rc_control(x_update, 20, y_update, 0)
                     time.sleep(0.5)
                     stop(drone)
                 else:
