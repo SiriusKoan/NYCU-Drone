@@ -185,13 +185,11 @@ def main():
             global rvec, tvec
             rvec, tvec, _objPoints = cv2.aruco.estimatePoseSingleMarkers(markerCorners, 15, intri, distortion)
 
-            # drone.send_rc_control(0, int(z_update), 0, 0)
-
-            #drone.send_rc_control(x_update, 0, 0, 0)
-
-            #drone.send_rc_control(x_update, int(z_update), 0, deg)
-
-            frame = cv2.aruco.drawAxis(frame, intri, distortion, rvec, tvec, 10)
+            try:
+                frame = cv2.aruco.drawAxis(frame, intri, distortion, np.float32(rvec), np.float32(tvec), 10)
+            except Exception as e:
+                print(e)
+                continue
             cv2.putText(frame,
                         f"x: {round(tvec[0,0,0], 2)}, y: {round(tvec[0,0,1], 2)}, z: {round(tvec[0,0,2], 2)}",
                         # "x: "+str(round(tvec[0,0,0], 2))+", y: "+str(round(tvec[0,0,1], 2))+", z: "+str(round(tvec[0,0,2], 4))+", deg: "+str(angle_deg)),
@@ -235,24 +233,27 @@ def main():
                 if [1] in markerIds <= 100:
                     # up 100cm
                     SPEED = 50
-                    for _ in range(int(100 / SPEED)):
-                        print("Up")
-                        drone.send_rc_control(0, 0, int(SPEED), 0)
-                        time.sleep(1)
+                    # for _ in range(int(100 / SPEED)):
+                    #     print("Up")
+                    #     drone.send_rc_control(0, 0, int(SPEED), 0)
+                    #     time.sleep(1)
+                    drone.move("up", 100)
                     stop(drone)
-                    # forward 120cm
+                    # forward 130cm
                     SPEED = 35
-                    for _ in range(int(105 / SPEED)):
-                        print("Forward")
-                        drone.send_rc_control(0, int(SPEED), 0, 0)
-                        time.sleep(1)
+                    # for _ in range(int(105 / SPEED)):
+                    #     print("Forward")
+                    #     drone.send_rc_control(0, int(SPEED), 0, 0)
+                    #     time.sleep(1)
+                    drone.move("forward", 130)
                     stop(drone)
-                    # down 200cm
+                    # down 150cm
                     SPEED = 50
-                    for _ in range(int(200 / SPEED)):
-                        print("Down")
-                        drone.send_rc_control(0, 0, int(-SPEED), 0)
-                        time.sleep(1)
+                    # for _ in range(int(200 / SPEED)):
+                    #     print("Down")
+                    #     drone.send_rc_control(0, 0, int(-SPEED), 0)
+                    #     time.sleep(1)
+                    drone.move("down", 150)
                     stop(drone)
                     progress = 2
             if progress == 2:
@@ -261,24 +262,27 @@ def main():
                 if [2] in markerIds and [1] not in markerIds:
                     # down 60cm
                     SPEED = 60
-                    for _ in range(int(60 / SPEED)):
-                        print("Down")
-                        drone.send_rc_control(0, 0, int(-SPEED / INTERVAL), 0)
-                        time.sleep(INTERVAL)
+                    # for _ in range(int(60 / SPEED)):
+                    #     print("Down")
+                    #     drone.send_rc_control(0, 0, int(-SPEED / INTERVAL), 0)
+                    #     time.sleep(INTERVAL)
+                    drone.move("down", 60)
                     stop(drone)
-                    # forward 180cm
+                    # forward 150cm
                     SPEED = 55
-                    for _ in range(int(165 / SPEED)):
-                        print("Forward")
-                        drone.send_rc_control(0, int(SPEED / INTERVAL), 0, 0)
-                        time.sleep(INTERVAL)
+                    # for _ in range(int(165 / SPEED)):
+                    #     print("Forward")
+                    #     drone.send_rc_control(0, int(SPEED / INTERVAL), 0, 0)
+                    #     time.sleep(INTERVAL)
+                    drone.move("forward", 150)
                     stop(drone)
                     # up 180cm
                     SPEED = 60
-                    for _ in range(int(180 / SPEED)):
-                        print("Up")
-                        drone.send_rc_control(0, 0, int(SPEED / INTERVAL), 0)
-                        time.sleep(INTERVAL)
+                    # for _ in range(int(180 / SPEED)):
+                    #     print("Up")
+                    #     drone.send_rc_control(0, 0, int(SPEED / INTERVAL), 0)
+                    #     time.sleep(INTERVAL)
+                    drone.move("up", 180)
                     stop(drone)
                     progress = 3
 
@@ -303,6 +307,8 @@ def main():
                      y_update = -10
                 elif tvec[0,0,1] < -15:
                     y_update = 10
+
+                R, _ = cv2.Rodrigues(rvec)
 
                 deg = 0
                 if R[2, 0] > 0.1:
@@ -364,6 +370,9 @@ def main():
                 else:
                     drone.move("left", 10)
                     stop(drone)
+                    progress = 7
+
+            if progress == 7:
                 z = tvec[0, 0, 2]
                 if z < 150:
                     x_update = 0
