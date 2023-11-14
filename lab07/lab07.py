@@ -160,7 +160,7 @@ def main():
     z_pid.initialize()
     y_pid.initialize()
     
-    progress = 0
+    progress = -1
 
     while True:
         # img
@@ -205,20 +205,23 @@ def main():
                 id = markerIds[i][0]
                 print(f"ID: {markerIds}")
                 print(f"Progress: {progress}")
+                if progress == -1:
+                    drone.move("forward", 80)
+                    progress = 0
                 if id == 1 and progress == 0:
                     z = tvec[i, 0, 2]
                     if z > 100:
                         x_update = 0
                         y_update = 0
                         if tvec[i, 0, 0] > 15:
-                            x_update = 20
+                            x_update = 10
                         elif tvec[i, 0, 0] < -15:
-                            x_update = -20
+                            x_update = -10
                         if tvec[i,0,1] > -5:
                             y_update = -10
                         elif tvec[i,0,1] < -15:
                             y_update = 10
-                        drone.send_rc_control(x_update, 20, y_update, 0)
+                        drone.send_rc_control(x_update, 25, y_update, 0)
                         time.sleep(0.5)
                         stop(drone)
                     else:
@@ -234,7 +237,7 @@ def main():
                         #     drone.send_rc_control(0, 0, int(SPEED), 0)
                         #     time.sleep(1)
                         drone.move("up", 70)
-                        stop(drone)
+                        # stop(drone)
                         # forward 130cm
                         SPEED = 35
                         # for _ in range(int(105 / SPEED)):
@@ -242,7 +245,7 @@ def main():
                         #     drone.send_rc_control(0, int(SPEED), 0, 0)
                         #     time.sleep(1)
                         drone.move("forward", 130)
-                        stop(drone)
+                        # stop(drone)
                         # down 120cm
                         SPEED = 50
                         # for _ in range(int(200 / SPEED)):
@@ -250,11 +253,24 @@ def main():
                         #     drone.send_rc_control(0, 0, int(-SPEED), 0)
                         #     time.sleep(1)
                         drone.move("down", 120)
-                        stop(drone)
+                        # stop(drone)
                         progress = 2
                 if progress == 2:
                     INTERVAL = 1
                     SPEED = 60
+                    x_update = 0
+                    y_update = 0
+                    if tvec[i, 0, 0] > 15:
+                        x_update = 10
+                    elif tvec[i, 0, 0] < -15:
+                        x_update = -10
+                    if tvec[i,0,1] > -5:
+                        y_update = -10
+                    elif tvec[i,0,1] < -15:
+                        y_update = 10
+                    drone.send_rc_control(x_update, 0, y_update, 0)
+                    time.sleep(0.5)
+                    stop(drone)
                     if id == 2:
                         # down 60cm
                         SPEED = 60
@@ -263,7 +279,7 @@ def main():
                         #     drone.send_rc_control(0, 0, int(-SPEED / INTERVAL), 0)
                         #     time.sleep(INTERVAL)
                         drone.move("down", 60)
-                        stop(drone)
+                        # stop(drone)
                         # forward 200cm
                         SPEED = 55
                         # for _ in range(int(165 / SPEED)):
@@ -271,15 +287,15 @@ def main():
                         #     drone.send_rc_control(0, int(SPEED / INTERVAL), 0, 0)
                         #     time.sleep(INTERVAL)
                         drone.move("forward", 200)
-                        stop(drone)
-                        # up 110cm
+                        # stop(drone)
+                        # up 110cm  
                         SPEED = 60
                         # for _ in range(int(180 / SPEED)):
                         #     print("Up")
                         #     drone.send_rc_control(0, 0, int(SPEED / INTERVAL), 0)
                         #     time.sleep(INTERVAL)
                         drone.move("up", 110)
-                        stop(drone)
+                        # stop(drone)
                         progress = 3
 
                 if id == 0 and progress == 3:
@@ -325,9 +341,9 @@ def main():
                         x_update = 0
                         y_update = 0
                         if tvec[i, 0, 0] > 15:
-                            x_update = 20
+                            x_update = 10
                         elif tvec[i, 0, 0] < -15:
-                            x_update = -20
+                            x_update = -10
                         if tvec[i,0,1] > -5:
                             y_update = -10
                         elif tvec[i,0,1] < -15:
@@ -341,24 +357,24 @@ def main():
                         elif R[2, 0] < -0.1:
                             deg = 25
 
-                        drone.send_rc_control(x_update, 15, y_update, deg)
+                        drone.send_rc_control(x_update, 20, y_update, deg)
                         time.sleep(0.5)
                         stop(drone)
                     else:
                         drone.rotate_clockwise(90)
-                        stop(drone)
+                        # stop(drone)
                         progress = 5
-                
+
                 if id == 4 and progress == 5:
                     INTERVAL = 1
                     z = tvec[i, 0, 2]
-                    if z > 70:
+                    if z > 85:
                         x_update = 0
                         y_update = 0
                         if tvec[i, 0, 0] > 15:
-                            x_update = 20
+                            x_update = 10
                         elif tvec[i, 0, 0] < -15:
-                            x_update = -20
+                            x_update = -10
                         if tvec[i,0,1] > -5:
                             y_update = -10
                         elif tvec[i,0,1] < -15:
@@ -372,7 +388,7 @@ def main():
                         elif R[2, 0] < -0.1:
                             deg = 25
 
-                        drone.send_rc_control(x_update, 15, y_update, deg)
+                        drone.send_rc_control(x_update, 20, y_update, deg)
                         time.sleep(0.5)
                         stop(drone)
                     else:
@@ -385,9 +401,9 @@ def main():
                         x_update = 0
                         y_update = 0
                         if tvec[i, 0, 0] > 15:
-                            x_update = 20
+                            x_update = 10
                         elif tvec[i, 0, 0] < -15:
-                            x_update = -20
+                            x_update = -10
                         if tvec[i,0,1] > -5:
                             y_update = -10
                         elif tvec[i,0,1] < -15:
@@ -401,14 +417,17 @@ def main():
                         elif R[2, 0] < -0.1:
                             deg = 25
 
-                        drone.send_rc_control(x_update, -15, y_update, deg)
+                        drone.send_rc_control(x_update, -20, y_update, deg)
                         time.sleep(0.5)
                         stop(drone)
                     else:
                         drone.land()
-
-
-                    
+                        progress = 7
+        else:
+            if progress == 6:
+                drone.send_rc_control(0, -20, 0, 0)
+                time.sleep(0.5)
+                stop(drone)
 
         # control
         if key != -1:
