@@ -1,53 +1,49 @@
 import cv2
+import dlib
 import numpy as np
+from math import sqrt
 
-# Known parameters
-known_person_width = 0.5  # Width of the person in meters (example value)
-known_person_height = 1.7  # Height of the person in meters (example value)
-known_face_width = 0.15   # Width of the face in meters (example value)
-known_face_height = 0.2   # Height of the face in meters (example value)
-focal_length = 25000       # Focal length of the camera (example value)
+def dis(tvec):
+    return round(float(tvec[2]), 2)
 
-# 開啟攝像機
-print("Turning on camera")
-cap = cv2.VideoCapture(0)  # 0代表默認攝像機，根據需要更改
-print("Starting reading.")
+hog = cv2.HOGDescriptor()
+hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
+
+detector = dlib.get_frontal_face_detector()
+
+cap = cv2.VideoCapture(0)
+f = cv2.FileStorage("calibrate.xml", cv2.FILE_STORAGE_READ)
+intrinsic = f.getNode("intrinsic").mat()
+distortion = f.getNode("distortion").mat()
+
+face_x = 14.5
+# body_x = 75
+body_y = 200
+face_objPoints = np.float32([(0, 0, 0), (face_x, 0, 0), (face_x, face_x, 0), (0, face_x, 0)])
 
 while True:
-    ret, frame = cap.read()
-
-    if not ret:
-        break
-
-    # initialize the HOG descriptor/person detector
-    hog = cv2.HOGDescriptor()
-    hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
-    rects, weights = hog.detectMultiScale(frame, winStride=(6, 6), padding=(8, 8), scale=1.05, useMeanshiftGrouping=False)
-
-    # draw the bounding boxes for people, yellow
-    for (x, y, w, h) in rects:
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 255), 3)
-
-        # Calculate depth for people
-        depth = (known_person_width * known_person_height * focal_length) / (w * h)
-        cv2.putText(frame, f'Depth: {depth:.2f} meters', (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
-
-    face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
-    rects = face_cascade.detectMultiScale(frame, scaleFactor=1.3, minNeighbors=5, minSize=(30, 30), flags=cv2.CASCADE_SCALE_IMAGE)
-
-    # draw the bounding boxes for faces, green
-    for (x, y, w, h) in rects:
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 3)
-
-        # Calculate depth for faces
-        depth = (known_face_width * known_face_height * focal_length) / (w * h)
-        cv2.putText(frame, f'Depth: {depth:.2f} meters', (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-
-    cv2.imshow('Calibration', frame)
-
-    # 按 'q' 鍵退出
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-
-cap.release()
-cv2.destroyAllWindows()
+    _, src = cap.read()
+    rects, weights = hog.detectMultiScale(src, winStride=(8, 8), scale=1.05, useMeanshiftGrouping = False)
+    face_rects = detector(src, 0)
+    for i, d in enumerate(face_rects):
+        x1 = d.left()
+        y1 = d.top()
+        x2 = d.right()
+        y2 = d.bottom()
+        # print(abs(x1-x2), abs(y1-y2))
+        src = cv2.rectangle(src, (x1, y1), (x2, y2), (0, 0, 255), 2)
+        imgPoints = np.float32([(x1, y1), (x2, y1), (x2, y2), (x1, y2)])
+        _, _, tvec = cv2.solvePnP(face_objPoints, imgPoints, intrinsic, distortion)
+        cv2.putText(src, str(dis(tvec)), (x2, y2), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 1, cv2.LINE_AA)
+    for rect in rects:
+        (x, y, w, h) = rect
+        src = cv2.rectangle(src, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        imgPoints = np.float32([(x, y), (x+w, y), (x+w, y+h), (x, y+h)])
+        body_x = body_y / 2
+        print(body_x, body_y)
+        body_objPoints = np.float32([(0, 0, 0), (body_x, 0, 0), (body_x, body_y, 0), (0, body_y, 0)])
+        _, _, tvec = cv2.solvePnP(body_objPoints, imgPoints, intrinsic, distortion)
+        print(tvec)
+        cv2.putText(src, str(dis(tvec)), (x+w, y+h), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 1, cv2.LINE_AA)
+    cv2.imshow("t", src)
+    cv2.waitKey(1)
