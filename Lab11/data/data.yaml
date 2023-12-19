@@ -1,0 +1,13 @@
+train: ./data/train/images
+val: ./data/valid/images
+test: ./data/test/images
+
+nc: 2
+names: ['Cana', 'melody']
+
+roboflow:
+  workspace: drone-yzqy7
+  project: lab09-tn0kq
+  version: 1
+  license: MIT
+  url: https://universe.roboflow.com/drone-yzqy7/lab09-tn0kq/dataset/1
