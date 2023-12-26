@@ -111,7 +111,8 @@ def keyboard(self, key):
     degree = 10
     if key == ord('1'):
         self.takeoff()
-        self.move("up", 50)
+        self.move_up(20)
+        self.move_forward(230)
         #is_flying = True
     if key == ord('2'):
         self.land()
@@ -211,9 +212,9 @@ def main():
                     plot_one_box(xyxy, frame, label=label, color=colors[int(cls)], line_thickness=3)
 
             print (label)
-            if label == "cana":
+            if label == "Cana":
                 subprogress = 1
-            if label == "melody":
+            elif label == "melody":
                 subprogress = 2
 
         # Load the predefined dictionary
@@ -286,30 +287,62 @@ def main():
                     if z > 70:
                         x_update = 0
                         y_update = 0
-                        if tvec[i, 0, 0] > 3:
-                            x_update = 3
-                        elif tvec[i, 0, 0] < -3:
-                            x_update = -3
+                        if tvec[i, 0, 0] > 8:
+                            x_update = 20
+                        elif tvec[i, 0, 0] < -8:
+                            x_update = -20
                         if tvec[i,0,1] > -5:
                             y_update = -10
                         elif tvec[i,0,1] < -15:
                             y_update = 10
-                        drone.send_rc_control(x_update, 15, y_update, 0)
+                        drone.send_rc_control(x_update, 40, y_update, 0)
                         time.sleep(0.1)
                         stop(drone)
                     else:
-                        drone.move_up(20)
+                        drone.move_up(25)
                         stop(drone)
                         progress = 2
                         f = True
                         break
                 if id == 2 and (progress == 1 or progress == 2):
                     progress = 3
-                    drone.rotate_clockwise(90)
-                    drone.move_right(210)
-                    drone.move_back(35)
 
-                if id == 3 and progress == 4:
+                if id == 2 and progress == 3:
+                    z = tvec[i, 0, 2]
+                    if z < 85:
+                        x_update = 0
+                        y_update = 0
+                        if tvec[i, 0, 0] > 15:
+                            x_update = 10
+                        elif tvec[i, 0, 0] < -15:
+                            x_update = -10
+                        if tvec[i,0,1] > -5:
+                            y_update = -10
+                        elif tvec[i,0,1] < -15:
+                            y_update = 10
+
+                        R, _ = cv2.Rodrigues(rvec[i])
+
+                        deg = 0
+                        if R[2, 0] > 0.1:
+                            deg = -25
+                        elif R[2, 0] < -0.1:
+                            deg = 25
+
+                        drone.send_rc_control(x_update, -20, y_update, deg)
+                        time.sleep(0.1)
+                        stop(drone)
+                    else:
+                        drone.move_back(200)
+                        progress = 4
+                        stop(drone)
+
+                if progress == 4:
+                    progress = 5
+                    drone.rotate_clockwise(90)
+                    drone.move_back(40)
+
+                if id == 3 and progress == 6:
                     z = tvec[i, 0, 2]
                     if z < 150:
                         x_update = 0
@@ -336,31 +369,38 @@ def main():
                         stop(drone)
                     else:
                         drone.land()
-                        progress = 5
+                        progress = 7
 
         if f:
             continue
 
         print(progress)
-        SPEED = 8
-        TIME = 0.5
-        BLACK_THRESHOLD = 800
+        SPEED = 40
+        TIME = 0.1
+        BLACK_THRESHOLD = 600
         up_grid = grid[0][0] + grid[0][1] + grid[0][2]
         down_grid = grid[2][0] + grid[2][1] + grid[2][2]
         left_grid = grid[0][0] + grid[1][0] + grid[2][0]
         right_grid = grid[0][2] + grid[1][2] + grid[2][2]
         if progress == 1:
+            y_update = 0
+            back = 0
+
+            if  up_grid + down_grid > 7000:
+                drone.move_back(20)
+                # back = -35
+
             if direction == "none":
-                if left_grid > 500:
-                    drone.send_rc_control(-SPEED, 0, 0, 0)
+                if left_grid > right_grid:
+                    drone.send_rc_control(-SPEED, 0, y_update, 0)
                     time.sleep(TIME)
                     stop(drone)
-                    direction = "left"
-                elif right_grid > 500:
-                    drone.send_rc_control(SPEED, 0, 0, 0)
-                    time.sleep(TIME)
-                    stop(drone)
-                    direction = "right"
+                    direction = "up_left"
+                # elif right_grid > left_grid:
+                #     drone.send_rc_control(SPEED, 0, 0, 0)
+                #     time.sleep(TIME)
+                #     stop(drone)
+                #     direction = "right"
                 else:
                     stop(drone)
                     direction = "none"
@@ -369,57 +409,84 @@ def main():
             elif direction == "upnone":
                 left_grid = grid[0][0] + grid[1][0]
                 right_grid = grid[0][2] + grid[1][2]
-                if left_grid > BLACK_THRESHOLD:
-                    drone.send_rc_control(-SPEED, 0, 0, 0)
+                if left_grid > right_grid:
+                    drone.send_rc_control(-SPEED, 0, y_update, 0)
                     time.sleep(TIME)
                     stop(drone)
-                    direction = "left"
-                elif right_grid > BLACK_THRESHOLD:
-                    drone.send_rc_control(SPEED, 0, 0, 0)
-                    time.sleep(TIME)
-                    stop(drone)
-                    direction = "right"
+                    direction = "up_left"
+                # elif right_grid > left_grid:
+                #     drone.send_rc_control(SPEED, 0, 0, 0)
+                #     time.sleep(TIME)
+                #     stop(drone)
+                #     direction = "right"
                 else:
                     stop(drone)
-                    direction = "none"
-                    progress = 2
+                    direction = "up_left"
 
             elif direction == "downnone":
                 left_grid = grid[2][0] + grid[1][0]
                 right_grid = grid[2][2] + grid[1][2]
-                if left_grid > BLACK_THRESHOLD:
-                    drone.send_rc_control(-SPEED, 0, 0, 0)
+                if left_grid > right_grid:
+                    drone.send_rc_control(-SPEED, 0, y_update, 0)
                     time.sleep(TIME)
                     stop(drone)
-                    direction = "left"
-                elif right_grid > BLACK_THRESHOLD:
-                    drone.send_rc_control(SPEED, 0, 0, 0)
-                    time.sleep(TIME)
-                    stop(drone)
-                    direction = "right"
+                    direction = "down_left"
+                # elif right_grid > left_grid:
+                #     drone.send_rc_control(SPEED, 0, 0, 0)
+                #     time.sleep(TIME)
+                #     stop(drone)
+                #     direction = "right"
                 else:
                     stop(drone)
                     direction = "none"
                     progress = 2
 
             elif direction == "right":
+
+                if grid[0][2] > grid[1][2]:
+                    y_update += 10
+
+                elif grid[2][2] > grid[1][2]:
+                    y_update -= 10
+
                 if right_grid > BLACK_THRESHOLD:
-                    drone.send_rc_control(SPEED, 0, 0, 0)
+                    drone.send_rc_control(SPEED, back, y_update, 0)
                     time.sleep(TIME)
                     stop(drone)
                 else:
                     stop(drone)
                     direction = "rightnone"
                     progress = 2
-                
-            elif direction == "left":
-                if grid[0][1] > BLACK_THRESHOLD and subprogress == 2:
+
+            elif direction == "down_left":
+                if grid[0][0] > grid[1][0]:
+                    y_update += 10
+
+                elif grid[2][0] > grid[1][0]:
+                    y_update -= 10
+
+                if left_grid > BLACK_THRESHOLD:
+                    drone.send_rc_control(-SPEED, back, y_update, 0)
+                    time.sleep(TIME)
                     stop(drone)
-                    direction = "up"
-                    subprogress = 2
+                else:
+                    stop(drone)
+                    direction = "leftnone"
                     progress = 2
+                
+            elif direction == "up_left":
+                if grid[0][0] > grid[1][0]:
+                    y_update += 10
+
+                elif grid[2][0] > grid[1][0]:
+                    y_update -= 10
+
+                if up_grid > BLACK_THRESHOLD and subprogress == 2:
+                    direction = "up"
+                    progress = 2
+                    stop(drone)
                 elif left_grid > BLACK_THRESHOLD:
-                    drone.send_rc_control(-SPEED, 0, 0, 0)
+                    drone.send_rc_control(-SPEED, back, y_update, 0)
                     time.sleep(TIME)
                     stop(drone)
                 else:
@@ -427,15 +494,24 @@ def main():
                     direction = "leftnone"
                     progress = 2
 
-        SPEED = 15
+            print(f"Driection: {direction}\n")
+
+        SPEED = 45
         if progress == 2:
+            x_update = 0
+            back = 0
+
+            if  up_grid + down_grid > 7000:
+                drone.move_back(20)
+                # back = -35
+
             if direction == "none":
-                if up_grid > 500:
+                if up_grid > down_grid:
                     drone.send_rc_control(0, 0, SPEED, 0)
                     time.sleep(TIME)
                     stop(drone)
                     direction = "up"
-                elif down_grid > 500:
+                elif down_grid > up_grid:
                     drone.send_rc_control(0, 0, -SPEED, 0)
                     time.sleep(TIME)
                     stop(drone)
@@ -448,12 +524,12 @@ def main():
             elif direction == "leftnone":
                 up_grid = grid[0][0] + grid[0][1]
                 down_grid = grid[2][0] + grid[2][1]
-                if up_grid > BLACK_THRESHOLD:
+                if up_grid > down_grid:
                     drone.send_rc_control(0, 0, SPEED, 0)
                     time.sleep(TIME)
                     stop(drone)
                     direction = "up"
-                elif down_grid > BLACK_THRESHOLD:
+                elif down_grid > up_grid:
                     drone.send_rc_control(0, 0, -SPEED, 0)
                     time.sleep(TIME)
                     stop(drone)
@@ -466,12 +542,12 @@ def main():
             elif direction == "rightnone":
                 up_grid = grid[0][1] + grid[0][2]
                 down_grid = grid[2][1] + grid[2][2]
-                if up_grid > BLACK_THRESHOLD:
+                if up_grid > down_grid:
                     drone.send_rc_control(0, 0, SPEED, 0)
                     time.sleep(TIME)
                     stop(drone)
                     direction = "up"
-                elif down_grid > BLACK_THRESHOLD:
+                elif down_grid > up_grid:
                     drone.send_rc_control(0, 0, -SPEED, 0)
                     time.sleep(TIME)
                     stop(drone)
@@ -482,8 +558,19 @@ def main():
                     progress = 1
 
             elif direction == "up":
-                if up_grid > BLACK_THRESHOLD:
-                    drone.send_rc_control(0, 0, SPEED, 0)
+                if grid[0][0] > grid[0][1]:
+                    x_update -= 10
+
+                elif grid[0][2] > grid[0][1]:
+                    x_update += 10
+
+                if left_grid > BLACK_THRESHOLD and subprogress == 1:
+                    direction = "up_left"
+                    progress = 1
+                    stop(drone)
+
+                elif up_grid > BLACK_THRESHOLD:
+                    drone.send_rc_control(x_update, back, SPEED, 0)
                     time.sleep(TIME)
                     stop(drone)
                 else:
@@ -492,6 +579,12 @@ def main():
                     progress = 1
 
             elif direction == "down":
+                if grid[2][0] > grid[2][1]:
+                    x_update -= 10
+
+                elif grid[2][2] > grid[2][1]:
+                    x_update += 10
+
                 if haveChanged == False:
                     if subprogress == 1:
                         subprogress = 2
@@ -499,7 +592,7 @@ def main():
                         subprogress = 1
                     haveChanged = True
                 if down_grid > BLACK_THRESHOLD:
-                    drone.send_rc_control(0, 0, -SPEED, 0)
+                    drone.send_rc_control(x_update, back, -SPEED, 0)
                     time.sleep(TIME)
                     stop(drone)
                 else:
@@ -507,8 +600,11 @@ def main():
                     direction = "downnone"
                     progress = 1
 
+
+            print(f"Direction: {direction}\n")
+
         # check face
-        elif progress == 3:
+        elif progress == 5:
             if len(rects) == 2:
                 target_x = (x1 + w1 + x2) / 2
                 print(f"IU1: {x1 + w1}\nIU2: {x2}")
@@ -523,12 +619,12 @@ def main():
                 else:
                     print("Two IU detected, go")
                     drone.move_forward(200)
-                    drone.move_left(30)
+                    drone.move_left(40)
                     drone.rotate_clockwise(180)
-                    progress = 4
+                    progress = 6
                 stop(drone)
-            else:
-                continue
+            # else:
+            #     continue
         # control
         if key != -1:
         #     if "tvec" in globals():
